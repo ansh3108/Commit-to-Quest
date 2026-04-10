@@ -5,19 +5,9 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const username = searchParams.get("username");
 
-  if (!username) {
-    return NextResponse.json({ error: "Username is required" }, { status: 400 });
-  }
+  if (!username) return NextResponse.json({ error: "Username is required" }, { status: 400 });
 
-  const token = process.env.GITHUB_ACCESS_TOKEN;
-
-  if (!token) {
-    console.error("CRITICAL ERROR: GITHUB_ACCESS_TOKEN is missing from environment variables.");
-  }
-
-  const octokit = new Octokit({
-    auth: token
-  });
+  const octokit = new Octokit({ auth: process.env.GITHUB_ACCESS_TOKEN });
 
   try {
     const { data: events } = await octokit.rest.activity.listPublicEventsForUser({
@@ -25,25 +15,27 @@ export async function GET(request: Request) {
       per_page: 30,
     });
 
-    const pushes = events.filter(event => event.type === "PushEvent");
-    
-    const commits = pushes.flatMap(push => {
-      const payload = push.payload as any;
-      if (!payload.commits) return [];
-      return payload.commits.map((commit: any) => ({
-        message: commit.message,
-        repo: push.repo.name,
-        date: push.created_at
-      }));
+    const parsedEvents = events.map(event => {
+      let message = "Explored the digital realm";
+      
+      if (event.type === "PushEvent") {
+        const payload = event.payload as any;
+        message = payload.commits?.[0]?.message || "Pushed new secrets";
+      } else if (event.type === "CreateEvent") {
+        message = "Founded a new kingdom (Repo)";
+      } else if (event.type === "WatchEvent") {
+        message = "Gained inspiration from a fellow traveler";
+      }
+
+      return {
+        message: message,
+        repo: event.repo.name,
+        type: event.type
+      };
     });
 
-    return NextResponse.json(commits);
+    return NextResponse.json(parsedEvents);
   } catch (error: any) {
-    console.error("GITHUB API ERROR:", error.status, error.message);
-    
-    return NextResponse.json(
-      { error: error.message || "Failed to fetch from GitHub" }, 
-      { status: error.status || 500 }
-    );
+    return NextResponse.json({ error: error.message }, { status: error.status || 500 });
   }
 }
