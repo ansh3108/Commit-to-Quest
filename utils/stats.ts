@@ -4,14 +4,16 @@ export const calculateLevel = (count: number) => {
 
 export const getHeroClass = (quests: any[]) => {
   const types = quests.map(q => q.type);
-  const mostCommon = types.sort((a, b) =>
-    types.filter(v => v === a).length - types.filter(v => v === b).length
-  ).pop();
-
-  if (mostCommon === "Quest Completed") return "Paladin";
-  if (mostCommon === "Item Found") return "Explorer";
-  if (mostCommon === "World Event") return "Architect";
-  if (mostCommon === "Lore Unlock") return "Scholar";
-  
+  if (types.includes("PushEvent")) return "Berserker";
+  if (types.includes("CreateEvent")) return "Architect";
   return "Adventurer";
+};
+
+export const calculateAttributes = (languages: Record<string, number>, stars: number) => {
+  const str = (languages["Rust"] || 0) * 5 + (languages["C++"] || 0) * 5 + 10;
+  const int = (languages["TypeScript"] || 0) * 3 + (languages["JavaScript"] || 0) * 2 + 10;
+  const agi = (languages["CSS"] || 0) * 5 + (languages["HTML"] || 0) * 2 + 10;
+  const lck = stars + 5;
+
+  return { str, int, agi, lck };
 };
